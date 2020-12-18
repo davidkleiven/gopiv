@@ -18,7 +18,7 @@ func DefaultTestTable() Table {
 				Data: []float64{-1.0, -1.0, 20.0},
 			},
 		},
-		TextColumn: []TextColumn{
+		TextColumns: []TextColumn{
 			{
 				Name: "firstTextColumn",
 				Data: []string{"item", "menu", "item"},
@@ -26,6 +26,39 @@ func DefaultTestTable() Table {
 			{
 				Name: "secondTextColumn",
 				Data: []string{"item2", "menu5", "item1"},
+			},
+		},
+	}
+}
+
+func WikipediaExample() Table {
+	return Table{
+		NumericColumns: []NumericColumn{
+			{
+				Name: "Units",
+				Data: []float64{12.0, 12.0, 12.0, 10.0, 10.0, 10.0, 11.0, 11.0, 11.0, 15.0, 15.0},
+			},
+			{
+				Name: "Price",
+				Data: []float64{11.04, 13.0, 11.96, 11.27, 12.12, 13.74, 11.44, 12.63, 12.06, 13.48, 11.08},
+			},
+			{
+				Name: "Cost",
+				Data: []float64{10.42, 12.60, 11.74, 10.56, 11.95, 13.33, 10.94, 11.73, 11.51, 13.29, 10.67},
+			},
+		},
+		TextColumns: []TextColumn{
+			{
+				Name: "Style",
+				Data: []string{"Tee", "Golf", "Fancy", "Tee", "Golf", "Fancy", "Tee", "Golf", "Fancy", "Tee", "Golf"},
+			},
+			{
+				Name: "Gender",
+				Data: []string{"Boy", "Boy", "Boy", "Girl", "Girl", "Girl", "Girl", "Boy", "Boy", "Girl", "Girl"},
+			},
+			{
+				Name: "Region",
+				Data: []string{"East", "East", "East", "East", "East", "East", "West", "North", "West", "West", "South"},
 			},
 		},
 	}
@@ -121,6 +154,64 @@ func TestTextDistinct(t *testing.T) {
 		sort.Strings(distinct)
 		if !stringSliceEqual(test.Unique, distinct) {
 			t.Errorf("Test #%d: Expected\n%v\ngot\n%v\n", i, test.Unique, distinct)
+		}
+	}
+}
+
+func TestExpressions(t *testing.T) {
+	tab := WikipediaExample()
+	if !tab.IsConsistent() {
+		t.Errorf("Inconsistent number of columns in wikipedia example\n")
+	}
+
+	for i, test := range []struct{
+		Expression string
+		Expect int
+	}{
+		{
+			Expression: "Region=='East'",
+			Expect: 6,
+		},
+		{
+			Expression: "Region=='West'",
+			Expect: 3,
+		},
+		{
+			Expression: "Region=='North'",
+			Expect: 1,
+		},
+		{
+			Expression: "Region=='South'",
+			Expect: 1,
+		},
+		{
+			Expression: "Region=='South' || Region=='North'",
+			Expect: 2,
+		},
+		{
+			Expression: "Region!='South'",
+			Expect: 10,
+		},
+		{
+			Expression: "Region!='South' && Price>12.0",
+			Expect: 6,
+		},
+		{
+			Expression: "Region=='West' && Price>12.0 && Price<13.0",
+			Expect: 1,
+		},
+		{
+			Expression: "Units>12.0",
+			Expect: 2,
+		},
+	}{
+		filtered, err := tab.Filter(test.Expression)
+		if err != nil {
+			t.Errorf("Test #%d: %s\n", i, err)
+		}
+
+		if filtered.Len() != test.Expect {
+			t.Errorf("Test #%d: Expected %d rows, got %d\n", i, test.Expect, filtered.Len())
 		}
 	}
 }
