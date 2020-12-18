@@ -1,6 +1,10 @@
 package gopiv
 
-import "testing"
+import (
+	"testing"
+	"gonum.org/v1/gonum/floats"
+	"sort"
+)
 
 func DefaultTestTable() Table {
 	return Table{
@@ -54,5 +58,69 @@ func TestHeaders(t *testing.T) {
 
 	if !stringSliceEqual(headers, expect) {
 		t.Errorf("Expected %v got %v\n", expect, headers)
+	}
+}
+
+func TestNumericDistinct(t *testing.T) {
+	for i, test := range []struct{
+		Data []float64
+		Unique []float64
+	}{
+		{
+			Data: []float64{1.0, 2.0},
+			Unique: []float64{1.0, 2.0},
+		},
+		{
+			Data: []float64{1.0, 2.0, 3.0, 2.0},
+			Unique: []float64{1.0, 2.0, 3.0},
+		},
+		{
+			Data: []float64{1.0, 1.0, 1.0, 1.0001},
+			Unique: []float64{1.0, 1.0001},
+		},
+		{
+			Data: []float64{1.0, 1.0, -1.0, 1.0001},
+			Unique: []float64{1.0, 1.0001, -1.0},
+		},
+	}{
+		col := NumericColumn{
+			Data: test.Data,
+		}
+		sort.Float64s(test.Unique)
+		distinct := col.Distinct()
+		sort.Float64s(distinct)
+		if !floats.EqualApprox(test.Unique, distinct, 1e-6) {
+			t.Errorf("Test #%d: Expected\n%v\ngot\n%v\n", i, test.Unique, distinct)
+		}
+	}
+}
+
+func TestTextDistinct(t *testing.T) {
+	for i, test := range []struct{
+		Data []string
+		Unique []string
+	}{
+		{
+			Data: []string{"one", "two"},
+			Unique: []string{"one", "two"},
+		},
+		{
+			Data: []string{"two", "one", "two", "two"},
+			Unique: []string{"one", "two"},
+		},
+		{
+			Data: []string{"one", "onee", "a", "b", "a"},
+			Unique: []string{"one", "onee", "a", "b"},
+		},
+	}{
+		col := TextColumn{
+			Data: test.Data,
+		}
+		sort.Strings(test.Unique)
+		distinct := col.Distinct()
+		sort.Strings(distinct)
+		if !stringSliceEqual(test.Unique, distinct) {
+			t.Errorf("Test #%d: Expected\n%v\ngot\n%v\n", i, test.Unique, distinct)
+		}
 	}
 }
