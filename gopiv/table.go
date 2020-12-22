@@ -237,7 +237,7 @@ func (t Table) IsConsistent() bool {
 }
 
 // Save writes data to a csv file
-func (t Table) Save(w io.Writer) error {
+func (t Table) Save(w io.Writer) {
 	writer := csv.NewWriter(w)
 	defer writer.Flush()
 
@@ -245,7 +245,18 @@ func (t Table) Save(w io.Writer) error {
 	writer.Write(headers)
 
 	for i := 0; i < t.Len(); i++ {
-
+		writer.Write(t.GetRow(i))
 	}
-	return nil
+}
+
+// Load a table from csv file
+func Load(r io.Reader) Table {
+	table := EmptyTable()
+	reader := csv.NewReader(r)
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+	}
 }
