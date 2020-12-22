@@ -1,9 +1,10 @@
 package gopiv
 
 import (
-	"testing"
-	"gonum.org/v1/gonum/floats"
 	"sort"
+	"testing"
+
+	"gonum.org/v1/gonum/floats"
 )
 
 func DefaultTestTable() Table {
@@ -95,27 +96,27 @@ func TestHeaders(t *testing.T) {
 }
 
 func TestNumericDistinct(t *testing.T) {
-	for i, test := range []struct{
-		Data []float64
+	for i, test := range []struct {
+		Data   []float64
 		Unique []float64
 	}{
 		{
-			Data: []float64{1.0, 2.0},
+			Data:   []float64{1.0, 2.0},
 			Unique: []float64{1.0, 2.0},
 		},
 		{
-			Data: []float64{1.0, 2.0, 3.0, 2.0},
+			Data:   []float64{1.0, 2.0, 3.0, 2.0},
 			Unique: []float64{1.0, 2.0, 3.0},
 		},
 		{
-			Data: []float64{1.0, 1.0, 1.0, 1.0001},
+			Data:   []float64{1.0, 1.0, 1.0, 1.0001},
 			Unique: []float64{1.0, 1.0001},
 		},
 		{
-			Data: []float64{1.0, 1.0, -1.0, 1.0001},
+			Data:   []float64{1.0, 1.0, -1.0, 1.0001},
 			Unique: []float64{1.0, 1.0001, -1.0},
 		},
-	}{
+	} {
 		col := NumericColumn{
 			Data: test.Data,
 		}
@@ -129,23 +130,23 @@ func TestNumericDistinct(t *testing.T) {
 }
 
 func TestTextDistinct(t *testing.T) {
-	for i, test := range []struct{
-		Data []string
+	for i, test := range []struct {
+		Data   []string
 		Unique []string
 	}{
 		{
-			Data: []string{"one", "two"},
+			Data:   []string{"one", "two"},
 			Unique: []string{"one", "two"},
 		},
 		{
-			Data: []string{"two", "one", "two", "two"},
+			Data:   []string{"two", "one", "two", "two"},
 			Unique: []string{"one", "two"},
 		},
 		{
-			Data: []string{"one", "onee", "a", "b", "a"},
+			Data:   []string{"one", "onee", "a", "b", "a"},
 			Unique: []string{"one", "onee", "a", "b"},
 		},
-	}{
+	} {
 		col := TextColumn{
 			Data: test.Data,
 		}
@@ -164,47 +165,47 @@ func TestExpressions(t *testing.T) {
 		t.Errorf("Inconsistent number of columns in wikipedia example\n")
 	}
 
-	for i, test := range []struct{
+	for i, test := range []struct {
 		Expression string
-		Expect int
+		Expect     int
 	}{
 		{
 			Expression: "Region=='East'",
-			Expect: 6,
+			Expect:     6,
 		},
 		{
 			Expression: "Region=='West'",
-			Expect: 3,
+			Expect:     3,
 		},
 		{
 			Expression: "Region=='North'",
-			Expect: 1,
+			Expect:     1,
 		},
 		{
 			Expression: "Region=='South'",
-			Expect: 1,
+			Expect:     1,
 		},
 		{
 			Expression: "Region=='South' || Region=='North'",
-			Expect: 2,
+			Expect:     2,
 		},
 		{
 			Expression: "Region!='South'",
-			Expect: 10,
+			Expect:     10,
 		},
 		{
 			Expression: "Region!='South' && Price>12.0",
-			Expect: 6,
+			Expect:     6,
 		},
 		{
 			Expression: "Region=='West' && Price>12.0 && Price<13.0",
-			Expect: 1,
+			Expect:     1,
 		},
 		{
 			Expression: "Units>12.0",
-			Expect: 2,
+			Expect:     2,
 		},
-	}{
+	} {
 		filtered, err := tab.Filter(test.Expression)
 		if err != nil {
 			t.Errorf("Test #%d: %s\n", i, err)
@@ -213,5 +214,32 @@ func TestExpressions(t *testing.T) {
 		if filtered.Len() != test.Expect {
 			t.Errorf("Test #%d: Expected %d rows, got %d\n", i, test.Expect, filtered.Len())
 		}
+	}
+}
+
+func TestGetNumericRow(t *testing.T) {
+	table := DefaultTestTable()
+	row := table.GetNumericRow(1)
+	expect := []float64{-1.0, -1.0}
+	if !floats.EqualApprox(expect, row, 1e-6) {
+		t.Errorf("Expected\n%v\ngot\n%v\n", expect, row)
+	}
+}
+
+func TestGetTextRow(t *testing.T) {
+	table := DefaultTestTable()
+	row := table.GetTextRow(1)
+	expect := []string{"menu", "menu5"}
+	if !stringSliceEqual(expect, row) {
+		t.Errorf("Expected\n%v\ngot\n%v\n", expect, row)
+	}
+}
+
+func TestGetRow(t *testing.T) {
+	table := DefaultTestTable()
+	row := table.GetRow(1)
+	expect := []string{"-1.000000", "-1.000000", "menu", "menu5"}
+	if !stringSliceEqual(expect, row) {
+		t.Errorf("Expected\n%v\ngot\n%v\n", expect, row)
 	}
 }

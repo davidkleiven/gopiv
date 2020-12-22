@@ -1,6 +1,10 @@
 package gopiv
 
 import (
+	"encoding/csv"
+	"fmt"
+	"io"
+
 	"github.com/Knetic/govaluate"
 )
 
@@ -70,14 +74,14 @@ func (tc TextColumn) Len() int {
 }
 
 // Append a value to the row
-func (tc *TextColumn) Append(v string ){
+func (tc *TextColumn) Append(v string) {
 	tc.Data = append(tc.Data, v)
 }
 
 // Table represents a flat pivot table
 type Table struct {
 	NumericColumns []NumericColumn
-	TextColumns []TextColumn
+	TextColumns    []TextColumn
 }
 
 // Len returns the number of items in a table
@@ -90,11 +94,46 @@ func (t Table) Len() int {
 	return 0
 }
 
+// NumCols returnst the length of the numeric columns
+func (t Table) NumCols() int {
+	return len(t.NumericColumns) + len(t.TextColumns)
+}
+
+// GetNumericRow returns all values on row
+func (t Table) GetNumericRow(row int) []float64 {
+	res := make([]float64, len(t.NumericColumns))
+	for i, col := range t.NumericColumns {
+		res[i] = col.Data[row]
+	}
+	return res
+}
+
+// GetTextRow returns the text row
+func (t Table) GetTextRow(row int) []string {
+	res := make([]string, len(t.TextColumns))
+	for i, col := range t.TextColumns {
+		res[i] = col.Data[row]
+	}
+	return res
+}
+
+// GetRow returns a row in the table, all entries are formatted as strings
+func (t Table) GetRow(row int) []string {
+	numeric := t.GetNumericRow(row)
+	numericTxt := make([]string, len(numeric))
+	for i, v := range numeric {
+		numericTxt[i] = fmt.Sprintf("%f", v)
+	}
+	txt := t.GetTextRow(row)
+	numericTxt = append(numericTxt, txt...)
+	return numericTxt
+}
+
 // EmptyTable returns a new table with no fields
 func EmptyTable() Table {
 	return Table{
 		NumericColumns: []NumericColumn{},
-		TextColumns: []TextColumn{},
+		TextColumns:    []TextColumn{},
 	}
 }
 
@@ -142,18 +181,17 @@ func (t Table) Headers() []string {
 	return append(num, txt...)
 }
 
-
 // Filter all fields satisfying the passed expression.
 func (t Table) Filter(expression string) (Table, error) {
 	parameters := make(map[string]interface{})
 
 	filteredTable := EmptyTableFromSchema(t.NumericHeaders(), t.TextHeaders())
-	expr, err := govaluate.NewEvaluableExpression(expression);
+	expr, err := govaluate.NewEvaluableExpression(expression)
 	if err != nil {
 		return filteredTable, err
 	}
 
-	for i := 0;i<t.Len();i++ {
+	for i := 0; i < t.Len(); i++ {
 		// Extract the entries on this row and add it to the parameters map
 		for _, item := range t.NumericColumns {
 			parameters[item.Name] = item.Data[i]
@@ -196,4 +234,18 @@ func (t Table) IsConsistent() bool {
 		}
 	}
 	return true
+}
+
+// Save writes data to a csv file
+func (t Table) Save(w io.Writer) error {
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	headers := t.Headers()
+	writer.Write(headers)
+
+	for i := 0; i < t.Len(); i++ {
+
+	}
+	return nil
 }
