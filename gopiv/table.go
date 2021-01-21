@@ -252,11 +252,12 @@ func (t Table) Save(w io.Writer) {
 // Load a table from csv file
 func Load(r io.Reader) Table {
 	table := EmptyTable()
-	reader := csv.NewReader(r)
-	for {
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
-	}
+	// reader := csv.NewReader(r)
+	// for {
+	// 	record, err := reader.Read()
+	// 	if err == io.EOF {
+	// 		break
+	// 	}
+	// }
+	return table
 }
